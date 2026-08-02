@@ -72,6 +72,67 @@
             pointer-events: none;
         }
 
+        /* ── Responsive: on small screens isolate engine below canvas ── */
+        @media (max-width: 768px) {
+            .engine-interface {
+                position: relative;
+                bottom: auto;
+                left: auto;
+                padding-bottom: 0;
+                background: rgba(10, 10, 10, 0.97);
+                border-top: 1px solid rgba(255,255,255,0.07);
+                z-index: 100;
+            }
+
+            /* Canvas section shrinks to give room to the panel */
+            .mobile-canvas-section {
+                height: 45vh !important;
+                min-height: 200px;
+            }
+
+            /* Nodes wrap instead of scroll so cards don't stack over canvas */
+            .nodes-container {
+                flex-wrap: wrap;
+                overflow-x: visible;
+                gap: 0.5rem;
+                padding: 8px;
+                margin-bottom: 6px;
+            }
+
+            .node-card {
+                min-width: calc(50% - 0.5rem);
+                flex: 1 1 calc(50% - 0.5rem);
+            }
+
+            /* Master dock stacks vertically on mobile */
+            .master-dock {
+                flex-direction: column;
+                gap: 1rem;
+                padding: 1rem;
+                border-radius: 0;
+                box-shadow: none;
+                width: 100%;
+                max-width: 100%;
+            }
+
+            .master-dock .grid {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+            }
+
+            /* Hide parallax scroll hint on mobile — not needed */
+            .parallax-container {
+                min-height: unset;
+            }
+
+            /* Sticky canvas wrapper becomes normal flow on mobile */
+            .mobile-sticky-wrapper {
+                position: relative !important;
+                height: 45vh !important;
+                top: auto !important;
+            }
+        }
+
         /* Top Tier: Letter Nodes */
         .nodes-container {
             width: 95%;
@@ -111,6 +172,10 @@
             appearance: none;
         }
 
+        .nodes-container {
+            align-items: flex-end;
+        }
+
         .node-card {
             min-width: 160px;
             padding: 0.75rem;
@@ -118,25 +183,35 @@
             backdrop-filter: blur(10px);
             border-radius: 1rem;
             border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: all 0.3s ease;
+            transition: border-color 0.3s ease, background 0.3s ease, transform 0.3s ease;
             cursor: pointer;
+            position: relative;
+            z-index: 1;
+            flex-shrink: 0;
         }
 
-        .node-card:hover, .node-card.is-hovered-card {
-            background: rgba(25, 25, 25, 0.95);
-            border-color: rgba(244, 63, 94, 0.4);
-            transform: translateY(-4px);
+        .node-card.is-active-card {
+            background: rgba(25, 25, 25, 0.98);
+            border-color: rgba(244, 63, 94, 0.5);
+            transform: translateY(-6px);
+            z-index: 10;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(244,63,94,0.15);
+        }
+
+        /* Subtle highlight on SVG-hover without expanding */
+        .node-card.is-hovered-card {
+            border-color: rgba(244, 63, 94, 0.25);
         }
 
         .node-controls {
             max-height: 0;
             opacity: 0;
             overflow: hidden;
-            transition: max-height 0.3s ease, opacity 0.3s ease, margin-top 0.3s ease;
+            transition: max-height 0.4s ease, opacity 0.35s ease, margin-top 0.3s ease;
         }
 
-        .node-card:hover .node-controls, .node-card.is-hovered-card .node-controls {
-            max-height: 200px;
+        .node-card.is-active-card .node-controls {
+            max-height: 560px;
             opacity: 1;
             margin-top: 0.75rem;
         }
@@ -144,10 +219,10 @@
         .node-indicator {
             font-size: 0.6rem;
             color: rgba(255,255,255,0.3);
-            transition: transform 0.3s ease;
+            transition: transform 0.3s ease, color 0.3s ease;
         }
 
-        .node-card:hover .node-indicator, .node-card.is-hovered-card .node-indicator {
+        .node-card.is-active-card .node-indicator {
             transform: rotate(180deg);
             color: #f43f5e;
         }
@@ -214,7 +289,83 @@
 
 <div id="custom-cursor"></div>
 
-<!-- Engine Interface -->
+<div class="parallax-container">
+    <div class="parallax-bg" id="parallax-bg"></div>
+
+    <div class="content-layer">
+        <section class="h-screen flex flex-col items-center justify-center relative">
+            <div class="text-center">
+                <h1 class="text-9xl font-black tag-font text-white opacity-10 blur-sm absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none uppercase">UNCUT</h1>
+                <p class="text-gray-500 uppercase tracking-[1em] text-xs font-bold">Scroll to Spray</p>
+            </div>
+        </section>
+
+        <main class="relative min-h-[100vh] flex items-center justify-center mobile-canvas-section">
+            <div class="sticky top-0 h-screen flex items-center justify-center w-full mobile-sticky-wrapper">
+                <svg id="graffiti-svg" viewBox="0 0 900 600" class="w-full max-w-6xl px-4">
+                    <!-- U1 -->
+                    <g id="letter-U1" class="letter-group">
+                        <path class="graffiti-path" d="M100,150 Q100,320 180,320 Q260,320 260,150" />
+                        <rect class="drip" x="105" y="270" width="5" height="170" rx="2" />
+                        <rect class="drip" x="240" y="250" width="6" height="130" rx="3" />
+                        <rect class="drip extra-drip" data-drip-idx="0" data-enabled="false" x="155" y="310" width="4" height="90" rx="2" />
+                        <rect class="drip extra-drip" data-drip-idx="1" data-enabled="false" x="195" y="300" width="7" height="150" rx="3.5" />
+                        <rect class="drip extra-drip" data-drip-idx="2" data-enabled="false" x="220" y="280" width="3" height="110" rx="1.5" />
+                    </g>
+                    <!-- N -->
+                    <g id="letter-N" class="letter-group">
+                        <path class="graffiti-path" d="M300,320 L300,150 L380,320 L380,150" />
+                        <rect class="drip" x="296" y="290" width="7" height="280" rx="3.5" />
+                        <rect class="drip" x="376" y="290" width="5" height="200" rx="2.5" />
+                        <rect class="drip extra-drip" data-drip-idx="0" data-enabled="false" x="310" y="300" width="4" height="120" rx="2" />
+                        <rect class="drip extra-drip" data-drip-idx="1" data-enabled="false" x="340" y="260" width="6" height="180" rx="3" />
+                        <rect class="drip extra-drip" data-drip-idx="2" data-enabled="false" x="360" y="310" width="3" height="95" rx="1.5" />
+                    </g>
+                    <!-- C -->
+                    <g id="letter-C" class="letter-group">
+                        <path class="graffiti-path" d="M480,180 Q420,150 420,240 Q420,330 480,300" />
+                        <rect class="drip" x="430" y="290" width="5" height="260" rx="2.5" />
+                        <rect class="drip extra-drip" data-drip-idx="0" data-enabled="false" x="445" y="310" width="4" height="140" rx="2" />
+                        <rect class="drip extra-drip" data-drip-idx="1" data-enabled="false" x="460" y="280" width="6" height="200" rx="3" />
+                        <rect class="drip extra-drip" data-drip-idx="2" data-enabled="false" x="422" y="260" width="3" height="100" rx="1.5" />
+                    </g>
+                    <!-- U2 -->
+                    <g id="letter-U2" class="letter-group">
+                        <path class="graffiti-path" d="M510,150 Q510,320 590,320 Q670,320 670,150" />
+                        <rect class="drip" x="512" y="270" width="6" height="200" rx="3" />
+                        <rect class="drip" x="588" y="310" width="5" height="280" rx="2.5" />
+                        <rect class="drip extra-drip" data-drip-idx="0" data-enabled="false" x="540" y="305" width="4" height="130" rx="2" />
+                        <rect class="drip extra-drip" data-drip-idx="1" data-enabled="false" x="565" y="295" width="7" height="170" rx="3.5" />
+                        <rect class="drip extra-drip" data-drip-idx="2" data-enabled="false" x="620" y="270" width="3" height="110" rx="1.5" />
+                    </g>
+                    <!-- T -->
+                    <g id="letter-T" class="letter-group">
+                        <path class="graffiti-path" d="M670,150 L780,150 M725,150 L725,320" />
+                        <rect class="drip" x="723" y="290" width="8" height="370" rx="4" />
+                        <rect class="drip" x="770" y="160" width="6" height="440" rx="3" />
+                        <rect class="drip extra-drip" data-drip-idx="0" data-enabled="false" x="695" y="155" width="4" height="120" rx="2" />
+                        <rect class="drip extra-drip" data-drip-idx="1" data-enabled="false" x="745" y="300" width="5" height="160" rx="2.5" />
+                        <rect class="drip extra-drip" data-drip-idx="2" data-enabled="false" x="758" y="155" width="3" height="90" rx="1.5" />
+                    </g>
+                    <!-- Underline -->
+                    <g id="letter-Under" class="letter-group">
+                        <path class="graffiti-path" d="M250,392 C350,342 550,342 650,392" />
+                        <rect class="drip" x="450" y="370" width="5" height="130" rx="2.5" />
+                        <rect class="drip extra-drip" data-drip-idx="0" data-enabled="false" x="320" y="360" width="4" height="100" rx="2" />
+                        <rect class="drip extra-drip" data-drip-idx="1" data-enabled="false" x="390" y="355" width="6" height="150" rx="3" />
+                        <rect class="drip extra-drip" data-drip-idx="2" data-enabled="false" x="560" y="365" width="3" height="85" rx="1.5" />
+                    </g>
+                </svg>
+            </div>
+        </main>
+
+        <section class="h-screen flex items-center justify-center">
+            <p class="tag-font text-xl text-white/5 uppercase tracking-widest">End of Session</p>
+        </section>
+    </div>
+</div>
+
+<!-- Engine Interface — after canvas so mobile flow puts it below -->
 <div class="engine-interface">
     <!-- Letter Nodes (Middle Tier) -->
     <div id="engine-nodes" class="nodes-container">
@@ -246,64 +397,6 @@
     </div>
 </div>
 
-<div class="parallax-container">
-    <div class="parallax-bg" id="parallax-bg"></div>
-
-    <div class="content-layer">
-        <section class="h-screen flex flex-col items-center justify-center relative">
-            <div class="text-center">
-                <h1 class="text-9xl font-black tag-font text-white opacity-10 blur-sm absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none uppercase">UNCUT</h1>
-                <p class="text-gray-500 uppercase tracking-[1em] text-xs font-bold">Scroll to Spray</p>
-            </div>
-        </section>
-
-        <main class="relative min-h-[100vh] flex items-center justify-center">
-            <div class="sticky top-0 h-screen flex items-center justify-center w-full">
-                <svg id="graffiti-svg" viewBox="0 0 900 600" class="w-full max-w-6xl px-4">
-                    <!-- U1 -->
-                    <g id="letter-U1" class="letter-group">
-                        <path class="graffiti-path" d="M100,150 Q100,320 180,320 Q260,320 260,150" />
-                        <rect class="drip" x="105" y="270" width="5" height="170" rx="2" />
-                        <rect class="drip" x="240" y="250" width="6" height="130" rx="3" />
-                    </g>
-                    <!-- N -->
-                    <g id="letter-N" class="letter-group">
-                        <path class="graffiti-path" d="M300,320 L300,150 L380,320 L380,150" />
-                        <rect class="drip" x="296" y="290" width="7" height="280" rx="3.5" />
-                        <rect class="drip" x="376" y="290" width="5" height="200" rx="2.5" />
-                    </g>
-                    <!-- C -->
-                    <g id="letter-C" class="letter-group">
-                        <path class="graffiti-path" d="M480,180 Q420,150 420,240 Q420,330 480,300" />
-                        <rect class="drip" x="430" y="290" width="5" height="260" rx="2.5" />
-                    </g>
-                    <!-- U2 -->
-                    <g id="letter-U2" class="letter-group">
-                        <path class="graffiti-path" d="M510,150 Q510,320 590,320 Q670,320 670,150" />
-                        <rect class="drip" x="512" y="270" width="6" height="200" rx="3" />
-                        <rect class="drip" x="588" y="310" width="5" height="280" rx="2.5" />
-                    </g>
-                    <!-- T -->
-                    <g id="letter-T" class="letter-group">
-                        <path class="graffiti-path" d="M670,150 L780,150 M725,150 L725,320" />
-                        <rect class="drip" x="723" y="290" width="8" height="370" rx="4" />
-                        <rect class="drip" x="770" y="160" width="6" height="440" rx="3" />
-                    </g>
-                    <!-- Underline -->
-                    <g id="letter-Under" class="letter-group">
-                        <path class="graffiti-path" d="M250,392 C350,342 550,342 650,392" />
-                        <rect class="drip" x="450" y="370" width="5" height="130" rx="2.5" />
-                    </g>
-                </svg>
-            </div>
-        </main>
-
-        <section class="h-screen flex items-center justify-center">
-            <p class="tag-font text-xl text-white/5 uppercase tracking-widest">End of Session</p>
-        </section>
-    </div>
-</div>
-
 <script>
     const letterIds = ['U1', 'N', 'C', 'U2', 'T', 'Under'];
     const state = {
@@ -311,8 +404,10 @@
         letters: {}
     };
 
+    const extraDripLabels = ['A', 'B', 'C'];
+
     letterIds.forEach(id => {
-        state.letters[id] = { weight: 36, height: 1.0, skew: 0, dripScale: 1.0 };
+        state.letters[id] = { weight: 36, height: 1.0, skew: 0, dripScale: 1.0, extraDrips: [false, false, false], extraDripScale: [1.0, 1.0, 1.0] };
     });
 
     const nodesContainer = document.getElementById('engine-nodes');
@@ -337,9 +432,56 @@
                         <label class="label-text flex justify-between">Drip <span class="value-text" id="v-d-${id}">1.0</span></label>
                         <input type="range" class="eng-input" data-id="${id}" data-type="dripScale" min="0" max="3" step="0.1" value="1">
                     </div>
+                    <div>
+                        <label class="label-text flex justify-between">Skew <span class="value-text" id="v-sk-${id}">0</span></label>
+                        <input type="range" class="eng-input" data-id="${id}" data-type="skew" min="-30" max="30" value="0">
+                    </div>
+                    <div class="border-t border-white/5 pt-2">
+                        <span class="label-text block mb-1">Extra Drips</span>
+                        ${extraDripLabels.map((lbl, i) => `
+                        <div class="mb-1">
+                            <div class="flex items-center gap-1 mb-0.5">
+                                <button class="extra-drip-toggle text-[8px] px-1.5 py-0.5 rounded border border-white/10 text-gray-500 hover:border-rose-500/50 hover:text-rose-400 transition-all" data-id="${id}" data-idx="${i}">Drip ${lbl}</button>
+                                <span class="value-text" id="v-ed-${id}-${i}">off</span>
+                            </div>
+                            <input type="range" class="extra-drip-scale" data-id="${id}" data-idx="${i}" min="0" max="3" step="0.1" value="1" style="opacity:0.3;pointer-events:none;">
+                        </div>
+                        `).join('')}
+                    </div>
                 </div>
             </div>
         `).join('');
+
+        // Extra drip toggle listeners
+        document.querySelectorAll('.extra-drip-toggle').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const { id, idx } = e.target.dataset;
+                const i = parseInt(idx);
+                state.letters[id].extraDrips[i] = !state.letters[id].extraDrips[i];
+                const on = state.letters[id].extraDrips[i];
+                btn.classList.toggle('border-rose-500/60', on);
+                btn.classList.toggle('text-rose-400', on);
+                btn.classList.toggle('border-white/10', !on);
+                btn.classList.toggle('text-gray-500', !on);
+                const scaleInput = document.querySelector(`.extra-drip-scale[data-id="${id}"][data-idx="${idx}"]`);
+                if (scaleInput) { scaleInput.style.opacity = on ? '1' : '0.3'; scaleInput.style.pointerEvents = on ? 'auto' : 'none'; }
+                const label = document.getElementById(`v-ed-${id}-${i}`);
+                if (label) label.innerText = on ? state.letters[id].extraDripScale[i].toFixed(1) : 'off';
+                applyEngineStyles();
+            });
+        });
+
+        // Extra drip scale listeners
+        document.querySelectorAll('.extra-drip-scale').forEach(input => {
+            input.addEventListener('input', (e) => {
+                const { id, idx } = e.target.dataset;
+                const i = parseInt(idx);
+                state.letters[id].extraDripScale[i] = parseFloat(e.target.value);
+                const label = document.getElementById(`v-ed-${id}-${i}`);
+                if (label && state.letters[id].extraDrips[i]) label.innerText = e.target.value;
+                applyEngineStyles();
+            });
+        });
 
         // Attach listeners
         document.querySelectorAll('.eng-input').forEach(input => {
@@ -350,19 +492,71 @@
             });
         });
 
-        // Attach bi-directional hover sync between UI cards and SVG Letters
-        document.querySelectorAll('.node-card').forEach(card => {
+        // Accordion: click to open/close, only one card active at a time
+        // SVG hover gives a subtle highlight without expanding the card
+        let activeNodeId = null;
+        const allCards = document.querySelectorAll('.node-card');
+
+        const activateCard = (targetId) => {
+            allCards.forEach(c => {
+                const cId = c.dataset.nodeId;
+                const g = document.getElementById(`letter-${cId}`);
+                if (cId === targetId) {
+                    c.classList.add('is-active-card');
+                    if (g) g.classList.add('is-hovered');
+                } else {
+                    c.classList.remove('is-active-card');
+                    if (g) g.classList.remove('is-hovered');
+                }
+            });
+            activeNodeId = targetId;
+        };
+
+        const deactivateAll = () => {
+            allCards.forEach(c => {
+                c.classList.remove('is-active-card');
+                const g = document.getElementById(`letter-${c.dataset.nodeId}`);
+                if (g) g.classList.remove('is-hovered');
+            });
+            activeNodeId = null;
+        };
+
+        allCards.forEach(card => {
             const id = card.dataset.nodeId;
             const svgGroup = document.getElementById(`letter-${id}`);
 
-            if (svgGroup) {
-                // Hovering the UI card highlights the SVG
-                card.addEventListener('mouseenter', () => svgGroup.classList.add('is-hovered'));
-                card.addEventListener('mouseleave', () => svgGroup.classList.remove('is-hovered'));
+            // Click header area to toggle accordion
+            const header = card.querySelector('.flex.justify-between.items-center');
+            (header || card).addEventListener('click', (e) => {
+                // Don't toggle if clicking inside controls (sliders, buttons)
+                if (e.target.closest('.node-controls')) return;
+                if (activeNodeId === id) {
+                    deactivateAll();
+                } else {
+                    activateCard(id);
+                }
+            });
 
-                // Hovering the SVG highlights the UI card
-                svgGroup.addEventListener('mouseenter', () => card.classList.add('is-hovered-card'));
-                svgGroup.addEventListener('mouseleave', () => card.classList.remove('is-hovered-card'));
+            // SVG hover: highlight card border + letter, but don't expand
+            if (svgGroup) {
+                svgGroup.addEventListener('mouseenter', () => {
+                    card.classList.add('is-hovered-card');
+                    svgGroup.classList.add('is-hovered');
+                });
+                svgGroup.addEventListener('mouseleave', () => {
+                    card.classList.remove('is-hovered-card');
+                    if (activeNodeId !== id) svgGroup.classList.remove('is-hovered');
+                });
+                // Clicking SVG letter opens its card
+                svgGroup.addEventListener('click', () => {
+                    if (activeNodeId === id) {
+                        deactivateAll();
+                    } else {
+                        activateCard(id);
+                        // Scroll the card into view in the nodes container
+                        card.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                    }
+                });
             }
         });
     }
@@ -380,15 +574,29 @@
             const xBase = index * state.master.spacing;
 
             // Apply Transforms
-            group.style.transform = `translateX(${xBase}px) scaleY(${conf.height}) skewX(${conf.skew}deg)`;
+            group.style.transform = `translateX(${xBase}px) scaleY(${conf.height}) skewX(${conf.skew || 0}deg)`;
             group.style.transformOrigin = 'center 150px';
 
             path.style.strokeWidth = conf.weight;
 
             drips.forEach(d => {
-                d.style.setProperty('--target-scale', conf.dripScale);
-                if (d.classList.contains('active')) {
-                    d.style.transform = `scaleY(${conf.dripScale})`;
+                if (d.classList.contains('extra-drip')) {
+                    const idx = parseInt(d.dataset.dripIdx);
+                    const enabled = conf.extraDrips[idx];
+                    const scale = conf.extraDripScale[idx];
+                    d.style.setProperty('--target-scale', enabled ? scale : 0);
+                    if (enabled) {
+                        d.style.opacity = '1';
+                        if (d.classList.contains('active')) d.style.transform = `scaleY(${scale})`;
+                    } else {
+                        d.style.opacity = '0';
+                        d.style.transform = 'scaleY(0)';
+                    }
+                } else {
+                    d.style.setProperty('--target-scale', conf.dripScale);
+                    if (d.classList.contains('active')) {
+                        d.style.transform = `scaleY(${conf.dripScale})`;
+                    }
                 }
             });
 
@@ -396,6 +604,7 @@
             const vh = document.getElementById(`v-h-${id}`); if(vh) vh.innerText = conf.height.toFixed(1);
             const vw = document.getElementById(`v-w-${id}`); if(vw) vw.innerText = conf.weight;
             const vd = document.getElementById(`v-d-${id}`); if(vd) vd.innerText = conf.dripScale.toFixed(1);
+            const vsk = document.getElementById(`v-sk-${id}`); if(vsk) vsk.innerText = conf.skew;
         });
     }
 
@@ -495,6 +704,7 @@
             // Activate Drips
             if (progress > 0.85) {
                 document.querySelectorAll('.drip').forEach((d, i) => {
+                    if (d.classList.contains('extra-drip') && d.style.opacity === '0') return;
                     setTimeout(() => {
                         d.classList.add('active');
                         const scale = d.style.getPropertyValue('--target-scale') || 1;
@@ -504,7 +714,9 @@
             } else {
                 document.querySelectorAll('.drip').forEach(d => {
                     d.classList.remove('active');
-                    d.style.transform = `scaleY(0)`;
+                    if (!(d.classList.contains('extra-drip') && d.style.opacity === '0')) {
+                        d.style.transform = `scaleY(0)`;
+                    }
                 });
             }
         };

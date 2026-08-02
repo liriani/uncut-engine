@@ -90,18 +90,30 @@
                 min-height: 200px;
             }
 
-            /* Nodes wrap instead of scroll so cards don't stack over canvas */
-            .nodes-container {
+            /* Tabs wrap on mobile */
+            .node-tabs {
                 flex-wrap: wrap;
-                overflow-x: visible;
-                gap: 0.5rem;
+                gap: 0.4rem;
                 padding: 8px;
-                margin-bottom: 6px;
             }
 
-            .node-card {
-                min-width: calc(50% - 0.5rem);
-                flex: 1 1 calc(50% - 0.5rem);
+            .node-tab {
+                border-radius: 0.4rem;
+                border-bottom: 1px solid rgba(255,255,255,0.08);
+            }
+
+            .node-panel {
+                border-radius: 0.6rem;
+                margin: 0 8px 8px;
+                width: calc(95% - 16px);
+            }
+
+            .node-panel-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .node-panel-extra {
+                grid-template-columns: repeat(2, 1fr);
             }
 
             /* Master dock stacks vertically on mobile */
@@ -133,19 +145,76 @@
             }
         }
 
-        /* Top Tier: Letter Nodes */
-        .nodes-container {
+        /* Node Selector Tabs */
+        .node-tabs {
             width: 95%;
             max-width: 1200px;
             display: flex;
-            gap: 1rem;
-            overflow-x: auto;
-            padding: 10px;
-            margin-bottom: 10px;
-            scrollbar-width: none;
+            gap: 0.5rem;
+            padding: 8px 10px 0;
             pointer-events: auto;
         }
-        .nodes-container::-webkit-scrollbar { display: none; }
+
+        .node-tab {
+            padding: 0.4rem 1rem;
+            background: rgba(15, 15, 15, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-bottom: none;
+            border-radius: 0.6rem 0.6rem 0 0;
+            font-size: 0.65rem;
+            font-weight: 900;
+            color: rgba(255,255,255,0.35);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            cursor: pointer;
+            transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+            pointer-events: auto;
+            flex-shrink: 0;
+        }
+
+        .node-tab:hover {
+            background: rgba(25, 25, 25, 0.85);
+            color: rgba(255,255,255,0.6);
+            border-color: rgba(255,255,255,0.15);
+        }
+
+        .node-tab.is-active-tab {
+            background: rgba(20, 20, 20, 0.98);
+            color: #f43f5e;
+            border-color: rgba(244, 63, 94, 0.4);
+        }
+
+        /* Contextual Settings Panel */
+        .node-panel {
+            width: 95%;
+            max-width: 1200px;
+            background: rgba(20, 20, 20, 0.98);
+            border: 1px solid rgba(244, 63, 94, 0.25);
+            border-radius: 0 0.6rem 0.6rem 0.6rem;
+            padding: 1rem 1.25rem;
+            pointer-events: auto;
+            margin-bottom: 8px;
+            display: none;
+        }
+
+        .node-panel.is-visible {
+            display: block;
+        }
+
+        .node-panel-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 1rem;
+        }
+
+        .node-panel-extra {
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+        }
 
         /* Bottom Tier: Master Dock */
         .master-dock {
@@ -172,59 +241,9 @@
             appearance: none;
         }
 
-        .nodes-container {
-            align-items: flex-end;
-        }
-
-        .node-card {
-            min-width: 160px;
-            padding: 0.75rem;
-            background: rgba(15, 15, 15, 0.85);
-            backdrop-filter: blur(10px);
-            border-radius: 1rem;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: border-color 0.3s ease, background 0.3s ease, transform 0.3s ease;
-            cursor: pointer;
-            position: relative;
-            z-index: 1;
-            flex-shrink: 0;
-        }
-
-        .node-card.is-active-card {
-            background: rgba(25, 25, 25, 0.98);
-            border-color: rgba(244, 63, 94, 0.5);
-            transform: translateY(-6px);
-            z-index: 10;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(244,63,94,0.15);
-        }
-
-        /* Subtle highlight on SVG-hover without expanding */
-        .node-card.is-hovered-card {
-            border-color: rgba(244, 63, 94, 0.25);
-        }
-
-        .node-controls {
-            max-height: 0;
-            opacity: 0;
-            overflow: hidden;
-            transition: max-height 0.4s ease, opacity 0.35s ease, margin-top 0.3s ease;
-        }
-
-        .node-card.is-active-card .node-controls {
-            max-height: 560px;
-            opacity: 1;
-            margin-top: 0.75rem;
-        }
-
-        .node-indicator {
-            font-size: 0.6rem;
-            color: rgba(255,255,255,0.3);
-            transition: transform 0.3s ease, color 0.3s ease;
-        }
-
-        .node-card.is-active-card .node-indicator {
-            transform: rotate(180deg);
-            color: #f43f5e;
+        .node-tab.is-hovered-tab {
+            border-color: rgba(244, 63, 94, 0.2);
+            color: rgba(255,255,255,0.5);
         }
 
         /* SVG Letter Hover Effects */
@@ -367,10 +386,11 @@
 
 <!-- Engine Interface — after canvas so mobile flow puts it below -->
 <div class="engine-interface">
-    <!-- Letter Nodes (Middle Tier) -->
-    <div id="engine-nodes" class="nodes-container">
-        <!-- Letter Controls Generated Here -->
-    </div>
+    <!-- Letter Selector Tabs -->
+    <div id="node-tabs" class="node-tabs"></div>
+
+    <!-- Contextual Node Settings Panel -->
+    <div id="node-panel" class="node-panel"></div>
 
     <!-- Master Controller (Bottom Tier) -->
     <div class="master-dock">
@@ -407,157 +427,160 @@
     const extraDripLabels = ['A', 'B', 'C'];
 
     letterIds.forEach(id => {
-        state.letters[id] = { weight: 36, height: 1.0, skew: 0, dripScale: 1.0, extraDrips: [false, false, false], extraDripScale: [1.0, 1.0, 1.0] };
+        state.letters[id] = { weight: 36, height: 1.0, width: 1.0, skew: 0, offset: 0, dripScale: 1.0, extraDrips: [false, false, false], extraDripScale: [1.0, 1.0, 1.0] };
     });
 
-    const nodesContainer = document.getElementById('engine-nodes');
 
-    function buildEngineUI() {
-        nodesContainer.innerHTML = letterIds.map(id => `
-            <div class="node-card" data-node-id="${id}">
-                <div class="flex justify-between items-center border-b border-white/5 pb-1">
-                    <span class="text-[9px] font-black text-rose-500/80 tracking-tighter uppercase">Node: ${id}</span>
-                    <span class="node-indicator">▼</span>
+    let selectedNodeId = null;
+
+    function renderPanel(id) {
+        const panel = document.getElementById('node-panel');
+        if (!id) { panel.classList.remove('is-visible'); panel.innerHTML = ''; return; }
+        const conf = state.letters[id];
+        panel.innerHTML = `
+            <div class="node-panel-grid">
+                <div>
+                    <label class="label-text flex justify-between mb-1">Weight <span class="value-text" id="v-w-${id}">${conf.weight}</span></label>
+                    <input type="range" class="eng-input" data-id="${id}" data-type="weight" min="5" max="100" value="${conf.weight}">
                 </div>
-                <div class="node-controls space-y-3">
-                    <div>
-                        <label class="label-text flex justify-between">Weight <span class="value-text" id="v-w-${id}">36</span></label>
-                        <input type="range" class="eng-input" data-id="${id}" data-type="weight" min="5" max="100" value="36">
-                    </div>
-                    <div>
-                        <label class="label-text flex justify-between">Height <span class="value-text" id="v-h-${id}">1.0</span></label>
-                        <input type="range" class="eng-input" data-id="${id}" data-type="height" min="0.5" max="1.8" step="0.1" value="1">
-                    </div>
-                    <div>
-                        <label class="label-text flex justify-between">Drip <span class="value-text" id="v-d-${id}">1.0</span></label>
-                        <input type="range" class="eng-input" data-id="${id}" data-type="dripScale" min="0" max="3" step="0.1" value="1">
-                    </div>
-                    <div>
-                        <label class="label-text flex justify-between">Skew <span class="value-text" id="v-sk-${id}">0</span></label>
-                        <input type="range" class="eng-input" data-id="${id}" data-type="skew" min="-30" max="30" value="0">
-                    </div>
-                    <div class="border-t border-white/5 pt-2">
-                        <span class="label-text block mb-1">Extra Drips</span>
-                        ${extraDripLabels.map((lbl, i) => `
-                        <div class="mb-1">
-                            <div class="flex items-center gap-1 mb-0.5">
-                                <button class="extra-drip-toggle text-[8px] px-1.5 py-0.5 rounded border border-white/10 text-gray-500 hover:border-rose-500/50 hover:text-rose-400 transition-all" data-id="${id}" data-idx="${i}">Drip ${lbl}</button>
-                                <span class="value-text" id="v-ed-${id}-${i}">off</span>
-                            </div>
-                            <input type="range" class="extra-drip-scale" data-id="${id}" data-idx="${i}" min="0" max="3" step="0.1" value="1" style="opacity:0.3;pointer-events:none;">
-                        </div>
-                        `).join('')}
-                    </div>
+                <div>
+                    <label class="label-text flex justify-between mb-1">Height <span class="value-text" id="v-h-${id}">${conf.height.toFixed(1)}</span></label>
+                    <input type="range" class="eng-input" data-id="${id}" data-type="height" min="0.5" max="1.8" step="0.1" value="${conf.height}">
+                </div>
+                <div>
+                    <label class="label-text flex justify-between mb-1">Width <span class="value-text" id="v-wi-${id}">${conf.width.toFixed(1)}</span></label>
+                    <input type="range" class="eng-input" data-id="${id}" data-type="width" min="0.3" max="2.5" step="0.1" value="${conf.width}">
+                </div>
+                <div>
+                    <label class="label-text flex justify-between mb-1">Drip <span class="value-text" id="v-d-${id}">${conf.dripScale.toFixed(1)}</span></label>
+                    <input type="range" class="eng-input" data-id="${id}" data-type="dripScale" min="0" max="3" step="0.1" value="${conf.dripScale}">
+                </div>
+                <div>
+                    <label class="label-text flex justify-between mb-1">Skew <span class="value-text" id="v-sk-${id}">${conf.skew}</span></label>
+                    <input type="range" class="eng-input" data-id="${id}" data-type="skew" min="-30" max="30" value="${conf.skew}">
+                </div>
+                <div>
+                    <label class="label-text flex justify-between mb-1">Offset <span class="value-text" id="v-of-${id}">${conf.offset}</span></label>
+                    <input type="range" class="eng-input" data-id="${id}" data-type="offset" min="-80" max="120" value="${conf.offset}">
                 </div>
             </div>
-        `).join('');
+            <div class="node-panel-extra">
+                ${extraDripLabels.map((lbl, i) => `
+                <div>
+                    <div class="flex items-center gap-1.5 mb-1">
+                        <button class="extra-drip-toggle text-[8px] px-1.5 py-0.5 rounded border transition-all ${conf.extraDrips[i] ? 'border-rose-500/60 text-rose-400' : 'border-white/10 text-gray-500 hover:border-rose-500/50 hover:text-rose-400'}" data-id="${id}" data-idx="${i}">Drip ${lbl}</button>
+                        <span class="value-text" id="v-ed-${id}-${i}">${conf.extraDrips[i] ? conf.extraDripScale[i].toFixed(1) : 'off'}</span>
+                    </div>
+                    <input type="range" class="extra-drip-scale" data-id="${id}" data-idx="${i}" min="0" max="3" step="0.1" value="${conf.extraDripScale[i]}" style="opacity:${conf.extraDrips[i] ? '1' : '0.3'};pointer-events:${conf.extraDrips[i] ? 'auto' : 'none'};">
+                </div>
+                `).join('')}
+            </div>
+        `;
+        panel.classList.add('is-visible');
 
-        // Extra drip toggle listeners
-        document.querySelectorAll('.extra-drip-toggle').forEach(btn => {
+        // Attach eng-input listeners
+        panel.querySelectorAll('.eng-input').forEach(input => {
+            input.addEventListener('input', (e) => {
+                const { id: lid, type } = e.target.dataset;
+                state.letters[lid][type] = parseFloat(e.target.value);
+                applyEngineStyles();
+            });
+        });
+
+        // Extra drip toggle
+        panel.querySelectorAll('.extra-drip-toggle').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const { id, idx } = e.target.dataset;
+                const { id: lid, idx } = e.target.dataset;
                 const i = parseInt(idx);
-                state.letters[id].extraDrips[i] = !state.letters[id].extraDrips[i];
-                const on = state.letters[id].extraDrips[i];
+                state.letters[lid].extraDrips[i] = !state.letters[lid].extraDrips[i];
+                const on = state.letters[lid].extraDrips[i];
                 btn.classList.toggle('border-rose-500/60', on);
                 btn.classList.toggle('text-rose-400', on);
                 btn.classList.toggle('border-white/10', !on);
                 btn.classList.toggle('text-gray-500', !on);
-                const scaleInput = document.querySelector(`.extra-drip-scale[data-id="${id}"][data-idx="${idx}"]`);
+                const scaleInput = panel.querySelector(`.extra-drip-scale[data-id="${lid}"][data-idx="${idx}"]`);
                 if (scaleInput) { scaleInput.style.opacity = on ? '1' : '0.3'; scaleInput.style.pointerEvents = on ? 'auto' : 'none'; }
-                const label = document.getElementById(`v-ed-${id}-${i}`);
-                if (label) label.innerText = on ? state.letters[id].extraDripScale[i].toFixed(1) : 'off';
+                const label = document.getElementById(`v-ed-${lid}-${i}`);
+                if (label) label.innerText = on ? state.letters[lid].extraDripScale[i].toFixed(1) : 'off';
                 applyEngineStyles();
             });
         });
 
-        // Extra drip scale listeners
-        document.querySelectorAll('.extra-drip-scale').forEach(input => {
+        // Extra drip scale
+        panel.querySelectorAll('.extra-drip-scale').forEach(input => {
             input.addEventListener('input', (e) => {
-                const { id, idx } = e.target.dataset;
+                const { id: lid, idx } = e.target.dataset;
                 const i = parseInt(idx);
-                state.letters[id].extraDripScale[i] = parseFloat(e.target.value);
-                const label = document.getElementById(`v-ed-${id}-${i}`);
-                if (label && state.letters[id].extraDrips[i]) label.innerText = e.target.value;
+                state.letters[lid].extraDripScale[i] = parseFloat(e.target.value);
+                const label = document.getElementById(`v-ed-${lid}-${i}`);
+                if (label && state.letters[lid].extraDrips[i]) label.innerText = e.target.value;
                 applyEngineStyles();
             });
         });
+    }
 
-        // Attach listeners
-        document.querySelectorAll('.eng-input').forEach(input => {
-            input.addEventListener('input', (e) => {
-                const { id, type } = e.target.dataset;
-                state.letters[id][type] = parseFloat(e.target.value);
-                applyEngineStyles();
-            });
-        });
+    function buildEngineUI() {
+        const tabsContainer = document.getElementById('node-tabs');
+        tabsContainer.innerHTML = letterIds.map(id =>
+            `<button class="node-tab" data-tab-id="${id}">${id}</button>`
+        ).join('');
 
-        // Accordion: click to open/close, only one card active at a time
-        // SVG hover gives a subtle highlight without expanding the card
-        let activeNodeId = null;
-        const allCards = document.querySelectorAll('.node-card');
+        const allTabs = tabsContainer.querySelectorAll('.node-tab');
 
-        const activateCard = (targetId) => {
-            allCards.forEach(c => {
-                const cId = c.dataset.nodeId;
-                const g = document.getElementById(`letter-${cId}`);
-                if (cId === targetId) {
-                    c.classList.add('is-active-card');
+        const selectTab = (targetId) => {
+            allTabs.forEach(t => {
+                const tId = t.dataset.tabId;
+                const g = document.getElementById(`letter-${tId}`);
+                if (tId === targetId) {
+                    t.classList.add('is-active-tab');
                     if (g) g.classList.add('is-hovered');
                 } else {
-                    c.classList.remove('is-active-card');
+                    t.classList.remove('is-active-tab');
+                    t.classList.remove('is-hovered-tab');
                     if (g) g.classList.remove('is-hovered');
                 }
             });
-            activeNodeId = targetId;
+            selectedNodeId = targetId;
+            renderPanel(targetId);
         };
 
-        const deactivateAll = () => {
-            allCards.forEach(c => {
-                c.classList.remove('is-active-card');
-                const g = document.getElementById(`letter-${c.dataset.nodeId}`);
+        const deselectAll = () => {
+            allTabs.forEach(t => {
+                t.classList.remove('is-active-tab');
+                t.classList.remove('is-hovered-tab');
+                const g = document.getElementById(`letter-${t.dataset.tabId}`);
                 if (g) g.classList.remove('is-hovered');
             });
-            activeNodeId = null;
+            selectedNodeId = null;
+            renderPanel(null);
         };
 
-        allCards.forEach(card => {
-            const id = card.dataset.nodeId;
-            const svgGroup = document.getElementById(`letter-${id}`);
-
-            // Click header area to toggle accordion
-            const header = card.querySelector('.flex.justify-between.items-center');
-            (header || card).addEventListener('click', (e) => {
-                // Don't toggle if clicking inside controls (sliders, buttons)
-                if (e.target.closest('.node-controls')) return;
-                if (activeNodeId === id) {
-                    deactivateAll();
-                } else {
-                    activateCard(id);
-                }
+        allTabs.forEach(tab => {
+            const id = tab.dataset.tabId;
+            tab.addEventListener('click', () => {
+                if (selectedNodeId === id) deselectAll();
+                else selectTab(id);
             });
+        });
 
-            // SVG hover: highlight card border + letter, but don't expand
-            if (svgGroup) {
-                svgGroup.addEventListener('mouseenter', () => {
-                    card.classList.add('is-hovered-card');
-                    svgGroup.classList.add('is-hovered');
-                });
-                svgGroup.addEventListener('mouseleave', () => {
-                    card.classList.remove('is-hovered-card');
-                    if (activeNodeId !== id) svgGroup.classList.remove('is-hovered');
-                });
-                // Clicking SVG letter opens its card
-                svgGroup.addEventListener('click', () => {
-                    if (activeNodeId === id) {
-                        deactivateAll();
-                    } else {
-                        activateCard(id);
-                        // Scroll the card into view in the nodes container
-                        card.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-                    }
-                });
-            }
+        // SVG letter hover/click wiring
+        letterIds.forEach(id => {
+            const svgGroup = document.getElementById(`letter-${id}`);
+            const tab = tabsContainer.querySelector(`[data-tab-id="${id}"]`);
+            if (!svgGroup || !tab) return;
+
+            svgGroup.addEventListener('mouseenter', () => {
+                if (selectedNodeId !== id) tab.classList.add('is-hovered-tab');
+                svgGroup.classList.add('is-hovered');
+            });
+            svgGroup.addEventListener('mouseleave', () => {
+                tab.classList.remove('is-hovered-tab');
+                if (selectedNodeId !== id) svgGroup.classList.remove('is-hovered');
+            });
+            svgGroup.addEventListener('click', () => {
+                if (selectedNodeId === id) deselectAll();
+                else selectTab(id);
+            });
         });
     }
 
@@ -570,11 +593,11 @@
             const drips = group.querySelectorAll('.drip');
             const conf = state.letters[id];
 
-            // Apply Master Spacing
-            const xBase = index * state.master.spacing;
+            // Apply Master Spacing + per-letter offset
+            const xBase = index * state.master.spacing + (conf.offset || 0);
 
             // Apply Transforms
-            group.style.transform = `translateX(${xBase}px) scaleY(${conf.height}) skewX(${conf.skew || 0}deg)`;
+            group.style.transform = `translateX(${xBase}px) scaleX(${conf.width || 1.0}) scaleY(${conf.height}) skewX(${conf.skew || 0}deg)`;
             group.style.transformOrigin = 'center 150px';
 
             path.style.strokeWidth = conf.weight;
@@ -601,10 +624,14 @@
             });
 
             // Update Labels
-            const vh = document.getElementById(`v-h-${id}`); if(vh) vh.innerText = conf.height.toFixed(1);
-            const vw = document.getElementById(`v-w-${id}`); if(vw) vw.innerText = conf.weight;
-            const vd = document.getElementById(`v-d-${id}`); if(vd) vd.innerText = conf.dripScale.toFixed(1);
-            const vsk = document.getElementById(`v-sk-${id}`); if(vsk) vsk.innerText = conf.skew;
+            if (id === selectedNodeId) {
+                const vh = document.getElementById(`v-h-${id}`); if(vh) vh.innerText = conf.height.toFixed(1);
+                const vw = document.getElementById(`v-w-${id}`); if(vw) vw.innerText = conf.weight;
+                const vwi = document.getElementById(`v-wi-${id}`); if(vwi) vwi.innerText = (conf.width || 1.0).toFixed(1);
+                const vd = document.getElementById(`v-d-${id}`); if(vd) vd.innerText = conf.dripScale.toFixed(1);
+                const vsk = document.getElementById(`v-sk-${id}`); if(vsk) vsk.innerText = conf.skew;
+                const vof = document.getElementById(`v-of-${id}`); if(vof) vof.innerText = conf.offset || 0;
+            }
         });
     }
 
@@ -624,10 +651,15 @@
         document.getElementById('v-master-weight').innerText = e.target.value;
         // Sync all letters to master weight for convenience
         letterIds.forEach(id => {
-            state.letters[id].weight = e.target.value;
-            const input = document.querySelector(`.eng-input[data-id="${id}"][data-type="weight"]`);
-            if(input) input.value = e.target.value;
+            state.letters[id].weight = parseFloat(e.target.value);
         });
+        // Update the panel slider + label if a node is currently selected
+        if (selectedNodeId) {
+            const panelInput = document.querySelector(`#node-panel .eng-input[data-type="weight"]`);
+            if (panelInput) panelInput.value = e.target.value;
+            const panelLabel = document.getElementById(`v-w-${selectedNodeId}`);
+            if (panelLabel) panelLabel.innerText = e.target.value;
+        }
         applyEngineStyles();
     });
 

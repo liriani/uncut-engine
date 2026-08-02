@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Urban Tag - Bottom Engine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #d1d1d1;
+            overflow-x: hidden;
+            cursor: crosshair;
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            color: #e2e8f0;
+        }
+
+        .parallax-container {
+            position: relative;
+            min-height: 220vh;
+        }
+
+        .parallax-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 120%;
+            background-image: url('https://images.unsplash.com/photo-1525114183042-88d447209772?q=80&w=2670&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+            filter: brightness(0.25) contrast(1.5) grayscale(0.5);
+            will-change: transform;
+            z-index: -1;
+        }
+
+        .graffiti-path {
+            fill: none;
+            stroke: #000000;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            filter: drop-shadow(4px 8px 12px rgba(0,0,0,0.9));
+            transition: stroke-width 0.2s ease;
+        }
+
+        .drip {
+            fill: #000000;
+            opacity: 0;
+            transform-origin: top;
+            transform: scaleY(0);
+            transition: transform 2.5s cubic-bezier(0.1, 0.5, 0.1, 1), opacity 0.5s;
+        }
+
+        .drip.active {
+            opacity: 1;
+        }
+
+        .tag-font { font-family: 'Permanent Marker', cursive; }
+
+        /* Multi-tier Engine UI */
+        .engine-interface {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-bottom: 20px;
+            pointer-events: none;
+        }
+
+        /* Top Tier: Letter Nodes */
+        .nodes-container {
+            width: 95%;
+            max-width: 1200px;
+            display: flex;
+            gap: 1rem;
+            overflow-x: auto;
+            padding: 10px;
+            margin-bottom: 10px;
+            scrollbar-width: none;
+            pointer-events: auto;
+        }
+        .nodes-container::-webkit-scrollbar { display: none; }
+
+        /* Bottom Tier: Master Dock */
+        .master-dock {
+            width: 95%;
+            max-width: 1200px;
+            background: rgba(15, 15, 15, 0.9);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1rem 2rem;
+            border-radius: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 3rem;
+            box-shadow: 0 -20px 50px rgba(0, 0, 0, 0.5);
+            pointer-events: auto;
+        }
+
+        input[type=range] {
+            accent-color: #f43f5e;
+            width: 100%;
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+            appearance: none;
+        }
+
+        .node-card {
+            min-width: 160px;
+            padding: 0.75rem;
+            background: rgba(15, 15, 15, 0.85);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .node-card:hover, .node-card.is-hovered-card {
+            background: rgba(25, 25, 25, 0.95);
+            border-color: rgba(244, 63, 94, 0.4);
+            transform: translateY(-4px);
+        }
+
+        .node-controls {
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease, opacity 0.3s ease, margin-top 0.3s ease;
+        }
+
+        .node-card:hover .node-controls, .node-card.is-hovered-card .node-controls {
+            max-height: 200px;
+            opacity: 1;
+            margin-top: 0.75rem;
+        }
+
+        .node-indicator {
+            font-size: 0.6rem;
+            color: rgba(255,255,255,0.3);
+            transition: transform 0.3s ease;
+        }
+
+        .node-card:hover .node-indicator, .node-card.is-hovered-card .node-indicator {
+            transform: rotate(180deg);
+            color: #f43f5e;
+        }
+
+        /* SVG Letter Hover Effects */
+        .letter-group {
+            transition: all 0.3s ease;
+            cursor: crosshair;
+        }
+
+        .letter-group.is-hovered .graffiti-path,
+        .letter-group:hover .graffiti-path {
+            stroke: #f43f5e !important;
+            filter: drop-shadow(0 0 15px rgba(244, 63, 94, 0.8)) !important;
+            z-index: 10;
+        }
+
+        .letter-group.is-hovered .drip,
+        .letter-group:hover .drip {
+            fill: #f43f5e !important;
+        }
+
+        .label-text {
+            font-size: 0.6rem;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .value-text {
+            font-size: 0.65rem;
+            font-family: monospace;
+            color: #f43f5e;
+        }
+
+        #graffiti-svg {
+            filter: url(#rough-filter);
+            overflow: visible;
+        }
+
+        #custom-cursor {
+            width: 30px;
+            height: 30px;
+            background: radial-gradient(circle, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 70%);
+            border-radius: 50%;
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<svg style="position: absolute; width: 0; height: 0;">
+    <defs>
+        <filter id="rough-filter">
+            <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3" result="noise" />
+            <feDisplacementMap in="SourceGraphic" in2="noise" id="displace-map" scale="4" />
+        </filter>
+    </defs>
+</svg>
+
+<div id="custom-cursor"></div>
+
+<!-- Engine Interface -->
+<div class="engine-interface">
+    <!-- Letter Nodes (Middle Tier) -->
+    <div id="engine-nodes" class="nodes-container">
+        <!-- Letter Controls Generated Here -->
+    </div>
+
+    <!-- Master Controller (Bottom Tier) -->
+    <div class="master-dock">
+        <div class="flex flex-col flex-shrink-0 gap-1">
+            <span class="text-[11px] font-black text-rose-500 uppercase tracking-tighter italic">Engine Master</span>
+            <button id="reset-btn" class="text-[9px] text-gray-500 hover:text-white underline text-left">RESET SYSTEM</button>
+            <button id="export-btn" class="text-[9px] text-rose-500/70 hover:text-rose-400 border border-rose-500/30 hover:border-rose-400/60 rounded px-2 py-0.5 uppercase tracking-tighter transition-all">⬇ Export SVG</button>
+        </div>
+
+        <div class="flex-1 grid grid-cols-3 gap-8">
+            <div class="space-y-1">
+                <div class="flex justify-between mb-1"><span class="label-text">Spacing</span><span class="value-text" id="v-master-spacing">0</span></div>
+                <input type="range" id="master-spacing" min="-40" max="80" value="0">
+            </div>
+            <div class="space-y-1">
+                <div class="flex justify-between mb-1"><span class="label-text">Roughness</span><span class="value-text" id="v-master-rough">4</span></div>
+                <input type="range" id="master-rough" min="0" max="30" value="4">
+            </div>
+            <div class="space-y-1">
+                <div class="flex justify-between mb-1"><span class="label-text">Global Weight</span><span class="value-text" id="v-master-weight">36</span></div>
+                <input type="range" id="master-weight" min="5" max="100" value="36">
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="parallax-container">
+    <div class="parallax-bg" id="parallax-bg"></div>
+
+    <div class="content-layer">
+        <section class="h-screen flex flex-col items-center justify-center relative">
+            <div class="text-center">
+                <h1 class="text-9xl font-black tag-font text-white opacity-10 blur-sm absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none uppercase">UNCUT</h1>
+                <p class="text-gray-500 uppercase tracking-[1em] text-xs font-bold">Scroll to Spray</p>
+            </div>
+        </section>
+
+        <main class="relative min-h-[100vh] flex items-center justify-center">
+            <div class="sticky top-0 h-screen flex items-center justify-center w-full">
+                <svg id="graffiti-svg" viewBox="0 0 900 600" class="w-full max-w-6xl px-4">
+                    <!-- U1 -->
+                    <g id="letter-U1" class="letter-group">
+                        <path class="graffiti-path" d="M100,150 Q100,320 180,320 Q260,320 260,150" />
+                        <rect class="drip" x="105" y="270" width="5" height="170" rx="2" />
+                        <rect class="drip" x="240" y="250" width="6" height="130" rx="3" />
+                    </g>
+                    <!-- N -->
+                    <g id="letter-N" class="letter-group">
+                        <path class="graffiti-path" d="M300,320 L300,150 L380,320 L380,150" />
+                        <rect class="drip" x="296" y="290" width="7" height="280" rx="3.5" />
+                        <rect class="drip" x="376" y="290" width="5" height="200" rx="2.5" />
+                    </g>
+                    <!-- C -->
+                    <g id="letter-C" class="letter-group">
+                        <path class="graffiti-path" d="M480,180 Q420,150 420,240 Q420,330 480,300" />
+                        <rect class="drip" x="430" y="290" width="5" height="260" rx="2.5" />
+                    </g>
+                    <!-- U2 -->
+                    <g id="letter-U2" class="letter-group">
+                        <path class="graffiti-path" d="M510,150 Q510,320 590,320 Q670,320 670,150" />
+                        <rect class="drip" x="512" y="270" width="6" height="200" rx="3" />
+                        <rect class="drip" x="588" y="310" width="5" height="280" rx="2.5" />
+                    </g>
+                    <!-- T -->
+                    <g id="letter-T" class="letter-group">
+                        <path class="graffiti-path" d="M670,150 L780,150 M725,150 L725,320" />
+                        <rect class="drip" x="723" y="290" width="8" height="370" rx="4" />
+                        <rect class="drip" x="770" y="160" width="6" height="440" rx="3" />
+                    </g>
+                    <!-- Underline -->
+                    <g id="letter-Under" class="letter-group">
+                        <path class="graffiti-path" d="M250,392 C350,342 550,342 650,392" />
+                        <rect class="drip" x="450" y="370" width="5" height="130" rx="2.5" />
+                    </g>
+                </svg>
+            </div>
+        </main>
+
+        <section class="h-screen flex items-center justify-center">
+            <p class="tag-font text-xl text-white/5 uppercase tracking-widest">End of Session</p>
+        </section>
+    </div>
+</div>
+
+<script>
+    const letterIds = ['U1', 'N', 'C', 'U2', 'T', 'Under'];
+    const state = {
+        master: { spacing: 0, weight: 36, rough: 4 },
+        letters: {}
+    };
+
+    letterIds.forEach(id => {
+        state.letters[id] = { weight: 36, height: 1.0, skew: 0, dripScale: 1.0 };
+    });
+
+    const nodesContainer = document.getElementById('engine-nodes');
+
+    function buildEngineUI() {
+        nodesContainer.innerHTML = letterIds.map(id => `
+            <div class="node-card" data-node-id="${id}">
+                <div class="flex justify-between items-center border-b border-white/5 pb-1">
+                    <span class="text-[9px] font-black text-rose-500/80 tracking-tighter uppercase">Node: ${id}</span>
+                    <span class="node-indicator">▼</span>
+                </div>
+                <div class="node-controls space-y-3">
+                    <div>
+                        <label class="label-text flex justify-between">Weight <span class="value-text" id="v-w-${id}">36</span></label>
+                        <input type="range" class="eng-input" data-id="${id}" data-type="weight" min="5" max="100" value="36">
+                    </div>
+                    <div>
+                        <label class="label-text flex justify-between">Height <span class="value-text" id="v-h-${id}">1.0</span></label>
+                        <input type="range" class="eng-input" data-id="${id}" data-type="height" min="0.5" max="1.8" step="0.1" value="1">
+                    </div>
+                    <div>
+                        <label class="label-text flex justify-between">Drip <span class="value-text" id="v-d-${id}">1.0</span></label>
+                        <input type="range" class="eng-input" data-id="${id}" data-type="dripScale" min="0" max="3" step="0.1" value="1">
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        // Attach listeners
+        document.querySelectorAll('.eng-input').forEach(input => {
+            input.addEventListener('input', (e) => {
+                const { id, type } = e.target.dataset;
+                state.letters[id][type] = parseFloat(e.target.value);
+                applyEngineStyles();
+            });
+        });
+
+        // Attach bi-directional hover sync between UI cards and SVG Letters
+        document.querySelectorAll('.node-card').forEach(card => {
+            const id = card.dataset.nodeId;
+            const svgGroup = document.getElementById(`letter-${id}`);
+
+            if (svgGroup) {
+                // Hovering the UI card highlights the SVG
+                card.addEventListener('mouseenter', () => svgGroup.classList.add('is-hovered'));
+                card.addEventListener('mouseleave', () => svgGroup.classList.remove('is-hovered'));
+
+                // Hovering the SVG highlights the UI card
+                svgGroup.addEventListener('mouseenter', () => card.classList.add('is-hovered-card'));
+                svgGroup.addEventListener('mouseleave', () => card.classList.remove('is-hovered-card'));
+            }
+        });
+    }
+
+    function applyEngineStyles() {
+        document.getElementById('displace-map').setAttribute('scale', state.master.rough);
+
+        letterIds.forEach((id, index) => {
+            const group = document.getElementById(`letter-${id}`);
+            const path = group.querySelector('.graffiti-path');
+            const drips = group.querySelectorAll('.drip');
+            const conf = state.letters[id];
+
+            // Apply Master Spacing
+            const xBase = index * state.master.spacing;
+
+            // Apply Transforms
+            group.style.transform = `translateX(${xBase}px) scaleY(${conf.height}) skewX(${conf.skew}deg)`;
+            group.style.transformOrigin = 'center 150px';
+
+            path.style.strokeWidth = conf.weight;
+
+            drips.forEach(d => {
+                d.style.setProperty('--target-scale', conf.dripScale);
+                if (d.classList.contains('active')) {
+                    d.style.transform = `scaleY(${conf.dripScale})`;
+                }
+            });
+
+            // Update Labels
+            const vh = document.getElementById(`v-h-${id}`); if(vh) vh.innerText = conf.height.toFixed(1);
+            const vw = document.getElementById(`v-w-${id}`); if(vw) vw.innerText = conf.weight;
+            const vd = document.getElementById(`v-d-${id}`); if(vd) vd.innerText = conf.dripScale.toFixed(1);
+        });
+    }
+
+    // Master Logic
+    document.getElementById('master-spacing').addEventListener('input', (e) => {
+        state.master.spacing = parseInt(e.target.value);
+        document.getElementById('v-master-spacing').innerText = e.target.value;
+        applyEngineStyles();
+    });
+    document.getElementById('master-rough').addEventListener('input', (e) => {
+        state.master.rough = e.target.value;
+        document.getElementById('v-master-rough').innerText = e.target.value;
+        applyEngineStyles();
+    });
+    document.getElementById('master-weight').addEventListener('input', (e) => {
+        state.master.weight = e.target.value;
+        document.getElementById('v-master-weight').innerText = e.target.value;
+        // Sync all letters to master weight for convenience
+        letterIds.forEach(id => {
+            state.letters[id].weight = e.target.value;
+            const input = document.querySelector(`.eng-input[data-id="${id}"][data-type="weight"]`);
+            if(input) input.value = e.target.value;
+        });
+        applyEngineStyles();
+    });
+
+    document.getElementById('reset-btn').addEventListener('click', () => {
+        location.reload();
+    });
+
+    document.getElementById('export-btn').addEventListener('click', () => {
+        const sourceSvg = document.getElementById('graffiti-svg');
+        const clone = sourceSvg.cloneNode(true);
+
+        // Inline computed styles for paths and drips so the export is self-contained
+        const sourceEls = sourceSvg.querySelectorAll('path, rect, g');
+        const cloneEls  = clone.querySelectorAll('path, rect, g');
+        sourceEls.forEach((el, i) => {
+            const computed = window.getComputedStyle(el);
+            const relevant = ['stroke', 'stroke-width', 'stroke-dasharray', 'stroke-dashoffset',
+                              'fill', 'opacity', 'transform', 'transform-origin', 'filter'];
+            relevant.forEach(prop => {
+                const val = computed.getPropertyValue(prop);
+                if (val && val !== '') cloneEls[i].style[prop] = val;
+            });
+        });
+
+        // Embed the rough filter defs into the clone
+        const defsSource = document.querySelector('svg defs');
+        if (defsSource) {
+            const defsClone = defsSource.cloneNode(true);
+            clone.insertBefore(defsClone, clone.firstChild);
+        }
+
+        clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+        clone.removeAttribute('class');
+
+        const svgData = new XMLSerializer().serializeToString(clone);
+        const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'uncut-tag.svg';
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+
+    function initScrollEngine() {
+        const paths = document.querySelectorAll('.graffiti-path');
+        const parallaxBg = document.getElementById('parallax-bg');
+        const cursor = document.getElementById('custom-cursor');
+
+        paths.forEach(p => {
+            const len = p.getTotalLength();
+            p.style.strokeDasharray = len;
+            p.style.strokeDashoffset = len;
+        });
+
+        const handleScroll = () => {
+            const y = window.scrollY;
+            const winH = window.innerHeight;
+
+            parallaxBg.style.transform = `translate3d(0, ${y * 0.3}px, 0)`;
+
+            const start = winH * 0.1;
+            const end = winH * 0.9;
+            let progress = (y - start) / (end - start);
+            progress = Math.max(0, Math.min(1, progress));
+
+            cursor.style.display = (progress > 0 && progress < 1) ? 'block' : 'none';
+
+            paths.forEach(p => {
+                const len = p.getTotalLength();
+                p.style.strokeDashoffset = len * (1 - progress);
+            });
+
+            // Activate Drips
+            if (progress > 0.85) {
+                document.querySelectorAll('.drip').forEach((d, i) => {
+                    setTimeout(() => {
+                        d.classList.add('active');
+                        const scale = d.style.getPropertyValue('--target-scale') || 1;
+                        d.style.transform = `scaleY(${scale})`;
+                    }, i * 40);
+                });
+            } else {
+                document.querySelectorAll('.drip').forEach(d => {
+                    d.classList.remove('active');
+                    d.style.transform = `scaleY(0)`;
+                });
+            }
+        };
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        window.addEventListener('mousemove', (e) => {
+            cursor.style.left = e.clientX - 15 + 'px';
+            cursor.style.top = e.clientY - 15 + 'px';
+        });
+    }
+
+    window.onload = () => {
+        buildEngineUI();
+        applyEngineStyles();
+        initScrollEngine();
+    };
+</script>
+</body>
+</html>
